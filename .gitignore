@@ -1,0 +1,20 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+.env
+.venv/
+*.pyc
+
+# OS
+.DS_Store
+
+# Build
+dist/
+build/
+
+# Secrets
+.env.local
+.env.production
