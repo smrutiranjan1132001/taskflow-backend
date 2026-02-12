@@ -1,26 +1,80 @@
-const express = require('express')
-const router = express.Router()
+const express = require("express");
+const prisma = require("../prisma/client");
+const { createTaskSchema } = require("../validations/task.validation");
 
-// POST api/v1/task
-router.post('/',async(req,res) => {
+const router = express.Router();
+
+router.post("/", async (req, res, next) => {
+  try {
+    const data = createTaskSchema.parse(req.body);
+
+    // TEMP user (until auth is built)
+    const userId = "TEMP_USER_ID";
+
+    const task = await prisma.task.create({
+      data: {
+        title: data.title,
+        type: data.type,
+        payload: data.payload,
+        userId,
+      },
+    });
+
     res.status(201).json({
-        message : "Task Created"
-    })
+      message: "Task created",
+      task,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
-})
+router.get("/", async (req, res, next) => {
+  try {
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const skip = (page - 1) * limit;
 
-//GET api/v1/task
-router.get('/',async(req,res) =>{
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.task.count(),
+    ]);
+
     res.json({
-        tasks : ["Land Lele"]
-    })
-})
+      page,
+      limit,
+      total,
+      tasks,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
-//GET(id) api/v1/task/:id
-router.get('/:id',async(req,res) => {
-    res.json({
-        taskID : req.params.id
-    })
-})
+router.get("/:id", async (req, res, next) => {
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: req.params.id },
+    });
 
-module.exports = router
+    if (!task) {
+      return res.status(404).json({
+        error: {
+          code: "TASK_NOT_FOUND",
+          message: "Task not found",
+        },
+      });
+    }
+
+    res.json(task);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+module.exports = router;

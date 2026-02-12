@@ -1,6 +1,7 @@
 // src/app.js
 const express = require('express')
 const taskRoutes = require("./routes/task.routes")
+const { ZodError } = require("zod");
 
 app = express()
 
@@ -29,6 +30,15 @@ app.get("/error-demo",async(req,res,next) => {
 
 // ❗ Global error handler (MUST be last)
 app.use((err,req,res,next) => {
+    if(err instanceof ZodError){
+        return res.status(400).json({
+            error:{
+                code : "Validation Error",
+                message : "Invalid Request Data",
+                details : err.errors
+            }
+        })
+    }
     console.log(err);
 
     res.status(500).json({

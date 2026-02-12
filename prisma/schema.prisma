@@ -1,0 +1,68 @@
+// This is your Prisma schema file
+// learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS (Define before models that use them)
+// ============================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum TaskType {
+  EMAIL
+  REPORT
+  SYNC
+}
+
+enum TaskStatus {
+  PENDING
+  RUNNING
+  FAILED
+  COMPLETED
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks     Task[]
+}
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  type        TaskType
+  status      TaskStatus @default(PENDING)
+  payload     Json?
+  result      Json?
+  attempts    Int        @default(0)
+
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])      // Fast filtering by user
+  @@index([status])      // Fast filtering by status
+  @@index([createdAt])   // Fast sorting by date
+}

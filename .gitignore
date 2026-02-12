@@ -18,3 +18,5 @@ build/
 # Secrets
 .env.local
 .env.production
+
+/src/generated/prisma
