@@ -2,13 +2,17 @@
 const express = require('express')
 const taskRoutes = require("./routes/task.routes")
 const { ZodError } = require("zod");
+const authRoutes = require("./routes/auth.routes");
+const {authMiddleware} = require("./middleware/auth.middleware");
 
 app = express()
 
 //Using middleware for JSON
 app.use(express.json())
 
-app.use("/api/v1/tasks",taskRoutes)
+app.use("/api/v1/auth", authRoutes);
+
+app.use("/api/v1/tasks", authMiddleware, taskRoutes);
 
 app.get("/health",(req,res) => {
     res.status(200).json({status : "OK"})

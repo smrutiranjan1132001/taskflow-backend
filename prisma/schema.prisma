@@ -40,11 +40,13 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   name      String
+  password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   tasks     Task[]
+  refreshTokens RefreshToken[]
 }
 
 model Task {
@@ -65,4 +67,13 @@ model Task {
   @@index([userId])      // Fast filtering by user
   @@index([status])      // Fast filtering by status
   @@index([createdAt])   // Fast sorting by date
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
 }

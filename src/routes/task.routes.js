@@ -9,7 +9,7 @@ router.post("/", async (req, res, next) => {
     const data = createTaskSchema.parse(req.body);
 
     // TEMP user (until auth is built)
-    const userId = "TEMP_USER_ID";
+    const userId = req.user.userId;
 
     const task = await prisma.task.create({
       data: {
