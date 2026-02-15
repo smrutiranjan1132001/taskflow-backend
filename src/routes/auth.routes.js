@@ -65,7 +65,7 @@ router.post("/login", async (req, res, next) => {
         });
 
 
-        res.json({ accessToken, refreshToken });
+        res.json({ token, refreshToken });
     } catch (err) {
         next(err);
     }

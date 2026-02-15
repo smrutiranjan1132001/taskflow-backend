@@ -1,6 +1,7 @@
 const express = require("express");
 const prisma = require("../prisma/client");
 const { createTaskSchema } = require("../validations/task.validation");
+const taskQueue = require("../queue/task.queue");
 
 const router = express.Router();
 
@@ -8,7 +9,7 @@ router.post("/", async (req, res, next) => {
   try {
     const data = createTaskSchema.parse(req.body);
 
-    // TEMP user (until auth is built)
+    // Was a TEMP user (until auth was built)
     const userId = req.user.userId;
 
     const task = await prisma.task.create({
@@ -20,8 +21,20 @@ router.post("/", async (req, res, next) => {
       },
     });
 
+    await taskQueue.add(
+      "processTask",
+      { taskId: task.id },
+      {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 2000,
+        },
+      }
+    );
+
     res.status(201).json({
-      message: "Task created",
+      message: "Task created and queued",
       task,
     });
   } catch (err) {
