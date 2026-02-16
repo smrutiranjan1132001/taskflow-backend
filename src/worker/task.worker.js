@@ -1,40 +1,75 @@
 const { Worker } = require("bullmq");
 const connection = require("../queue/connection");
 const prisma = require("../prisma/client");
+const logger = require("../utils/logger");
 
 const worker = new Worker(
-  "taskQueue",
-  async (job) => {
+    "taskQueue",
+    async (job) => {
 
-    const { taskId } = job.data;
+        const { taskId } = job.data;
 
-    console.log("Processing task:", taskId);
+        // atomic start
+        const task = await prisma.task.updateMany({
+            where: {
+                id: taskId,
+                status: "PENDING",
+            },
+            data: {
+                status: "RUNNING",
+                attempts: { increment: 1 },
+            },
+        });
 
-    await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        status: "RUNNING",
-      },
-    });
+        if (task.count === 0) {
+            return;
+        }
 
-    // simulate work
-    await new Promise(resolve => setTimeout(resolve, 3000));
 
-    await prisma.task.update({
-      where: { id: taskId },
-      data: {
-        status: "COMPLETED",
-      },
-    });
+        try {
 
-  },
-  { connection }
+            logger.info({ taskId }, "Processing task");
+
+            // simulate work
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // atomic completion
+            await prisma.task.update({
+                where: { id: taskId },
+                data: {
+                    status: "COMPLETED",
+                    result: { success: true },
+                },
+            });
+
+        } catch (error) {
+
+            await prisma.task.update({
+                where: { id: taskId },
+                data: {
+                    status: "FAILED",
+                    result: {
+                        error: error.message,
+                    },
+                },
+            });
+
+            throw error;
+        }
+    },
+    { connection }
 );
 
-worker.on("completed", (job) => {
-  console.log("Task completed:", job.id);
+
+worker.on("completed", async (job) => {
+    logger.info({ jobId: job.id }, "Job completed");
 });
 
-worker.on("failed", (job, err) => {
-  console.error("Task failed:", err);
+worker.on("failed", async (job, err) => {
+  logger.error({ jobId: job.id, error: err.message }, "Job failed");
+});
+
+process.on("SIGINT", async () => {
+  await worker.close();
+  process.exit(0);
 });

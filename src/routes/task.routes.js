@@ -25,6 +25,7 @@ router.post("/", async (req, res, next) => {
       "processTask",
       { taskId: task.id },
       {
+        jobId: task.id,
         attempts: 3,
         backoff: {
           type: "exponential",
