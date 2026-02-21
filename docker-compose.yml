@@ -16,6 +16,17 @@ services:
     container_name: taskflow-redis
     ports:
       - "6379:6379"
+  api:
+    build: .
+    container_name: taskflow-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://taskflow:taskflow@postgres:5432/taskflow
+      REDIS_HOST: redis
 
 volumes:
   pgdata:

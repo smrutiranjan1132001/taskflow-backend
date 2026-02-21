@@ -69,7 +69,11 @@ worker.on("failed", async (job, err) => {
   logger.error({ jobId: job.id, error: err.message }, "Job failed");
 });
 
-process.on("SIGINT", async () => {
+async function shutdown() {
+  logger.info("Worker shutting down...");
   await worker.close();
   process.exit(0);
-});
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
